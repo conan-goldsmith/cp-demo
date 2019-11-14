@@ -22,7 +22,7 @@ services:
     ports:
       - "2181:2181"
   openldap:
-    image: rroemhild/test-openldap
+    image: conangoldsmith/cp-demo-ldap
     hostname: openldap
     container_name: openldap
     ports:

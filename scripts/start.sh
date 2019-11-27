@@ -17,6 +17,9 @@ verify_installed()
 verify_installed "jq"
 verify_installed "docker-compose"
 verify_installed "keytool"
+verify_installed "confluent"
+verify_installed "docker"
+verify_installed "openssl"
 
 # Verify Docker memory is increased to at least 8GB
 DOCKER_MEMORY=$(docker system info | grep Memory | grep -o "[0-9\.]\+")
@@ -31,6 +34,12 @@ ${DIR}/stop.sh
 # Generate keys and certificates used for SSL
 echo -e "Generate keys and certificates used for SSL"
 (cd ${DIR}/security && ./certs-create.sh)
+
+# Generating public and private keys for token signing
+echo "Generating public and private keys for token signing"
+mkdir -p ./conf
+openssl genrsa -out ./conf/keypair.pem 2048
+openssl rsa -in ./conf/keypair.pem -outform PEM -pubout -out ./conf/public.pem
 
 # Bring up Docker Compose
 echo -e "Bringing up Docker Compose"
@@ -85,6 +94,11 @@ if [[ ! $(docker-compose exec connect timeout 3 nc -zv irc.wikimedia.org 6667) =
   echo -e "\nERROR: irc.wikimedia.org 6667 is unreachable. Please ensure connectivity before proceeding or try setting 'irc.server.port' to 8001 in scripts/connectors/submit_wikipedia_irc_config.sh\n"
   exit 1
 fi
+
+# Set role bindings
+echo
+echo "Creating role bindings for service accounts"
+${DIR}/create-role-bindings.sh
 
 echo -e "\nStart streaming from the IRC source connector:"
 ${DIR}/connectors/submit_wikipedia_irc_config.sh

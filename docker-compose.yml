@@ -33,7 +33,8 @@ services:
   kafka1:
     #image: confluentinc/cp-server:latest
     #image: confluentinc/cp-enterprise-kafka:5.3.1
-    image: confluentinc/cp-enterprise-kafka:5.4.0-beta1
+    #image: confluentinc/cp-enterprise-kafka:5.4.0-beta1
+    image: confluentinc/cp-server:5.4.0-beta1
     hostname: kafka1
     container_name: kafka1
     cpus: 0.7

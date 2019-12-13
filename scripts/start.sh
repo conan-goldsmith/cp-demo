@@ -42,7 +42,23 @@ openssl genrsa -out ./conf/keypair.pem 2048
 openssl rsa -in ./conf/keypair.pem -outform PEM -pubout -out ./conf/public.pem
 
 # Bring up Docker Compose
-echo -e "Bringing up Docker Compose"
+echo -e "Starting Zookeeper, OpenLDAP and Kafka with MDS"
+docker-compose up -d kafka1
+
+# wait for kafka container to be healthy
+source ./scripts/functions.sh
+echo
+echo "Waiting for the broker to be healthy"
+retry 10 5 container_healthy kafka1
+
+# Set role bindings
+echo
+echo "Creating role bindings for service accounts"
+${DIR}/create-role-bindings.sh
+
+# start the rest of the cluster
+echo
+echo "Starting the rest of the services"
 docker-compose up -d
 
 # Verify Confluent Control Center has started within MAX_WAIT seconds
@@ -94,11 +110,6 @@ if [[ ! $(docker-compose exec connect timeout 3 nc -zv irc.wikimedia.org 6667) =
   echo -e "\nERROR: irc.wikimedia.org 6667 is unreachable. Please ensure connectivity before proceeding or try setting 'irc.server.port' to 8001 in scripts/connectors/submit_wikipedia_irc_config.sh\n"
   exit 1
 fi
-
-# Set role bindings
-echo
-echo "Creating role bindings for service accounts"
-${DIR}/create-role-bindings.sh
 
 echo -e "\nStart streaming from the IRC source connector:"
 ${DIR}/connectors/submit_wikipedia_irc_config.sh

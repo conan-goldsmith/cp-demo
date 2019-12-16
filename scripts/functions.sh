@@ -22,7 +22,7 @@ retry() {
 
 container_healthy() {
     local name=$1
-    local container=$(docker-compose -p rbac ps -q $1)
+    local container=$(docker-compose  ps -q $1)
     local healthy=$(docker inspect --format '{{ .State.Health.Status }}' $container)
     if [ $healthy == healthy ]
     then

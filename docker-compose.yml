@@ -1,6 +1,7 @@
-version: "2.2"
+version: "2.3"
 services:
   zookeeper:
+    #image: confluentinc/cp-zookeeper:5.4.x-latest
     image: confluentinc/cp-zookeeper:5.4.x-latest
     restart: always
     hostname: zookeeper
@@ -14,6 +15,11 @@ services:
                   -DrequireClientAuthScheme=sasl
     volumes:
       - ./scripts/security:/etc/kafka/secrets
+    healthcheck:
+      test: nc -z localhost 2181
+      interval: 5s
+      retries: 5
+      start_period: 30s
     ports:
       - "2181:2181"
 
@@ -25,6 +31,11 @@ services:
     ports:
       - "389:389"
     privileged: true
+    healthcheck:
+      test: nc -z localhost 389
+      interval: 5s
+      retries: 5
+      start_period: 30s
 
   kafka1:
     image: confluentinc/cp-server:5.4.x-latest
@@ -33,6 +44,7 @@ services:
     cpus: 0.7
     depends_on:
       - zookeeper
+      - openldap
     volumes:
       - ./conf:/tmp/conf
       - ./client-configs:/etc/client-configs
@@ -42,6 +54,11 @@ services:
       - "8090:8090"
       - "9091:9091"
       - "29091:29091"
+    healthcheck:
+      test: nc -z localhost 8090
+      interval: 5s
+      retries: 5
+      start_period: 20s
     command: "bash -c 'if [ ! -f /etc/kafka/secrets/kafka.kafka1.keystore.jks ]; then echo \"ERROR: Did not find SSL certificates in /etc/kafka/secrets/ (did you remember to run ./scripts/start.sh instead of docker-compose up -d?)\" && exit 1 ; else /etc/confluent/docker/run ; fi'"
     environment:
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
@@ -67,7 +84,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
       CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka1:9091"
-      CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL: INTERNAL
+      CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL: SASL_SSL
       CONFLUENT_METRICS_REPORTER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.plain.PlainLoginModule required \
         username=\"admin\" \
         password=\"admin-secret\";"
@@ -141,7 +158,7 @@ services:
 
       # Configure RBAC authorizer
       # KAFKA_CONFLUENT_AUTHORIZER_SCOPE: myCluster
-      KAFKA_CONFLUENT_AUTHORIZER_ACCESS_RULE_PROVIDERS: CONFLUENT
+      KAFKA_CONFLUENT_AUTHORIZER_ACCESS_RULE_PROVIDERS: CONFLUENT,ZK_ACL
       # KAFKA_CONFLUENT_AUTHORIZER_METADATA_PROVIDER: RBAC
       KAFKA_CONFLUENT_AUTHORIZER_GROUP_PROVIDER: RBAC
       # KAFKA_CONFLUENT_METADATA_SERVER_SCOPE: ''

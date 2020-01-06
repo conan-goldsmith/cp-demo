@@ -49,7 +49,7 @@ docker-compose up -d kafka1
 source ./scripts/functions.sh
 echo
 echo "Waiting for the broker to be healthy"
-retry 12 5 container_healthy kafka1
+retry 30 5 container_healthy kafka1
 
 # Set role bindings
 echo

@@ -54,6 +54,8 @@
         - "8090:8090"
         - "9091:9091"
         - "29091:29091"
+        - "10091:10091"
+        - "11091:11091"
       healthcheck:
         test: nc -z localhost 8090 && nc -z localhost 29091 && /etc/kafka-registered.sh zookeeper:2181
         interval: 3s
@@ -62,18 +64,23 @@
       command: "bash -c 'if [ ! -f /etc/kafka/secrets/kafka.kafka1.keystore.jks ]; then echo \"ERROR: Did not find SSL certificates in /etc/kafka/secrets/ (did you remember to run ./scripts/start.sh instead of docker-compose up -d?)\" && exit 1 ; else /etc/confluent/docker/run ; fi'"
       environment:
         KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-        KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_SSL,SASL_SSL:SASL_SSL,SSL:SSL,SASL_SSL_HOST:SASL_SSL,PLAINTEXT:PLAINTEXT
+        #KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_SSL,SASL_SSL:SASL_SSL,SSL:SSL,SASL_SSL_HOST:SASL_SSL,PLAINTEXT:PLAINTEXT
+        KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,SASL_SSL:SASL_SSL,SSL:SSL,SASL_SSL_HOST:SASL_SSL,PLAINTEXT:PLAINTEXT
         #KAFKA_CONFLUENT_METADATA_SECURITY_PROTOCOL: SASL_SSL
+        KAFKA_CONFLUENT_METADATA_SECURITY_PROTOCOL: SASL_PLAINTEXT
         KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
         KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:9091,SASL_SSL://kafka1:29091,PLAINTEXT://kafka1:10091,SSL://kafka1:11091
         #KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
         
         KAFKA_SUPER_USERS: User:admin;User:mds;User:professor;User:client;User:schemaregistry;User:restproxy;User:broker;User:connect;User:ANONYMOUS
         KAFKA_LOG4J_LOGGERS: "kafka.authorizer.logger=INFO"
+        KAFKA_LOG4J_ROOT_LOGLEVEL: DEBUG
+        KAFKA_TOOLS_LOG4J_LOGLEVEL: DEBUG
+
         KAFKA_METRIC_REPORTERS: "io.confluent.metrics.reporter.ConfluentMetricsReporter"
         KAFKA_BROKER_ID: 1
         KAFKA_BROKER_RACK: "r1"
-        KAFKA_LISTENER_NAME_INTERNAL_SASL_ENABLED_MECHANISMS: PLAIN, OAUTHBEARER
+        KAFKA_LISTENER_NAME_INTERNAL_SASL_ENABLED_MECHANISMS: PLAIN
         KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG: |
                                                               \
                                                               org.apache.kafka.common.security.plain.PlainLoginModule required \
@@ -82,7 +89,7 @@
                                                               user_admin="admin-secret" \
                                                               user_mds="mds-secret";
 
-        KAFKA_LISTENER_NAME_SASL_SSL_SASL_ENABLED_MECHANISMS: PLAIN, OAUTHBEARER
+        KAFKA_LISTENER_NAME_SASL_SSL_SASL_ENABLED_MECHANISMS: OAUTHBEARER
         KAFKA_LISTENER_NAME_SASL_SSL_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: io.confluent.kafka.server.plugins.auth.token.TokenBearerValidatorCallbackHandler
         KAFKA_LISTENER_NAME_SASL_SSL_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.confluent.kafka.server.plugins.auth.token.TokenBearerServerLoginCallbackHandler
         KAFKA_LISTENER_NAME_SASL_SSL_OAUTHBEARER_SASL_JAAS_CONFIG: |
@@ -95,16 +102,16 @@
         KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
         KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
         CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka1:9091"
-        CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL: SASL_SSL
+        CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL: SASL_PLAINTEXT
         CONFLUENT_METRICS_REPORTER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.plain.PlainLoginModule required \
           username=\"admin\" \
           password=\"admin-secret\";"
         CONFLUENT_METRICS_REPORTER_SASL_MECHANISM: PLAIN
-        CONFLUENT_METRICS_REPORTER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.client.truststore.jks
-        CONFLUENT_METRICS_REPORTER_SSL_TRUSTSTORE_PASSWORD: confluent
-        CONFLUENT_METRICS_REPORTER_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.client.keystore.jks
-        CONFLUENT_METRICS_REPORTER_SSL_KEYSTORE_PASSWORD: confluent
-        CONFLUENT_METRICS_REPORTER_SSL_KEY_PASSWORD: confluent
+        # CONFLUENT_METRICS_REPORTER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.client.truststore.jks
+        # CONFLUENT_METRICS_REPORTER_SSL_TRUSTSTORE_PASSWORD: confluent
+        # CONFLUENT_METRICS_REPORTER_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.client.keystore.jks
+        # CONFLUENT_METRICS_REPORTER_SSL_KEYSTORE_PASSWORD: confluent
+        # CONFLUENT_METRICS_REPORTER_SSL_KEY_PASSWORD: confluent
         # CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 2
         CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
         CONFLUENT_METRICS_REPORTER_MAX_REQUEST_SIZE: 10485760
@@ -115,6 +122,8 @@
         KAFKA_JMX_PORT: 9991
         KAFKA_SASL_ENABLED_MECHANISMS: PLAIN, OAUTHBEARER
         KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+        
+
         KAFKA_SSL_KEYSTORE_FILENAME: kafka.kafka1.keystore.jks
         KAFKA_SSL_KEYSTORE_CREDENTIALS: kafka1_keystore_creds
         KAFKA_SSL_KEY_CREDENTIALS: kafka1_sslkey_creds
@@ -131,6 +140,7 @@
                     -Djavax.net.ssl.trustStorePassword=confluent
                     -Djavax.net.ssl.keyStore=/etc/kafka/secrets/kafka.kafka1.keystore.jks
                     -Djavax.net.ssl.keyStorePassword=confluent
+        
 
         # CONFIGURE AUTHORIZER
         # Setup kafka to use RBAC authorizer
@@ -139,11 +149,11 @@
         # ======================== CONFIGURE MDS ====================================
         # Configure how MDS talks to broker
         KAFKA_CONFLUENT_METADATA_BOOTSTRAP_SERVERS: INTERNAL://localhost:9091
-        KAFKA_CONFLUENT_METADATA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.client.truststore.jks
-        KAFKA_CONFLUENT_METADATA_SSL_TRUSTSTORE_PASSWORD: confluent
-        KAFKA_CONFLUENT_METADATA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.client.keystore.jks
-        KAFKA_CONFLUENT_METADATA_SSL_KEYSTORE_PASSWORD: confluent
-        KAFKA_CONFLUENT_METADATA_SSL_KEY_PASSWORD: confluent
+        # KAFKA_CONFLUENT_METADATA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.client.truststore.jks
+        # KAFKA_CONFLUENT_METADATA_SSL_TRUSTSTORE_PASSWORD: confluent
+        # KAFKA_CONFLUENT_METADATA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.client.keystore.jks
+        # KAFKA_CONFLUENT_METADATA_SSL_KEYSTORE_PASSWORD: confluent
+        # KAFKA_CONFLUENT_METADATA_SSL_KEY_PASSWORD: confluent
         KAFKA_CONFLUENT_METADATA_SASL_MECHANISM: PLAIN
         KAFKA_CONFLUENT_METADATA_SASL_JAAS_CONFIG: |
                                                     \
@@ -498,10 +508,6 @@
           condition: service_healthy
         kafka1:
           condition: service_healthy
-        schemaregistry:
-          condition: service_healthy
-        connect:
-          condition: service_healthy
         ksql-server:
           condition: service_healthy
       ports:
@@ -611,7 +617,7 @@
         SCHEMA_REGISTRY_SSL_KEY_PASSWORD: confluent
         SCHEMA_REGISTRY_SSL_CLIENT_AUTH: "true"
         SCHEMA_REGISTRY_SCHEMA_REGISTRY_INTER_INSTANCE_PROTOCOL: "https"
-        SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: INFO
+        SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: DEBUG
 
         # ======================= RBAC =================================
         SCHEMA_REGISTRY_SCHEMA_REGISTRY_RESOURCE_EXTENSION_CLASS: io.confluent.kafka.schemaregistry.security.SchemaRegistrySecurityResourceExtension
@@ -821,7 +827,10 @@
       environment:
         KAFKA_REST_HOST_NAME: restproxy
         # KAFKA_REST_BOOTSTRAP_SERVERS: "SASL_SSL://kafka1:9091,SASL_SSL://kafka2:9092"
-        KAFKA_REST_BOOTSTRAP_SERVERS: "SASL_SSL://kafka1:29091"
+        # KAFKA_REST_BOOTSTRAP_SERVERS: "SASL_SSL://kafka1:29091"
+# Changed from SASL to just SSL, this worked.  
+        KAFKA_REST_BOOTSTRAP_SERVERS: "SSL://kafka1:11091"
+        #
         KAFKA_REST_LISTENERS: "https://0.0.0.0:8086"
         KAFKA_REST_SCHEMA_REGISTRY_URL: "https://schemaregistry:8085"
         KAFKA_REST_SCHEMA_REGISTRY_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.client.truststore.jks
@@ -848,8 +857,10 @@
         KAFKA_REST_ZOOKEEPER_CONNECT: zookeeper:2181
         # =================== Credentials and classpath for cub kafka-ready ====================
         CUB_CLASSPATH: '/etc/confluent/docker/docker-utils.jar:/usr/share/java/confluent-security/kafka-rest/*:/usr/share/java/kafka-rest/*'
-        KAFKA_REST_CLIENT_SECURITY_PROTOCOL: SASL_SSL
-        KAFKA_REST_CLIENT_SASL_MECHANISM: OAUTHBEARER
+        
+#Commented out below to verify that SSL worked
+        #KAFKA_REST_CLIENT_SECURITY_PROTOCOL: SASL_SSL
+        #KAFKA_REST_CLIENT_SASL_MECHANISM: OAUTHBEARER
         KAFKA_REST_CLIENT_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler
         KAFKA_REST_CLIENT_SASL_JAAS_CONFIG: |
                                             \

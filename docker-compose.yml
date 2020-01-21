@@ -70,7 +70,7 @@
         #KAFKA_CONFLUENT_METADATA_SECURITY_PROTOCOL: SASL_SSL
         KAFKA_CONFLUENT_METADATA_SECURITY_PROTOCOL: SASL_PLAINTEXT
         KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-        KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:9091,SASL_SSL://kafka1:29091,SASL_PLAINTEXT://kafka1:10091,SSL://kafka1:11091
+        KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:9091,SASL_SSL://kafka1:29091,OUTSIDE://kafka1:10091,SSL://kafka1:11091
         #KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
         
         KAFKA_SUPER_USERS: User:admin;User:mds;User:professor;User:client;User:schemaregistry;User:restproxy;User:broker;User:connect;User:ANONYMOUS
@@ -81,6 +81,8 @@
         KAFKA_METRIC_REPORTERS: "io.confluent.metrics.reporter.ConfluentMetricsReporter"
         KAFKA_BROKER_ID: 1
         KAFKA_BROKER_RACK: "r1"
+        KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+        KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
         KAFKA_LISTENER_NAME_INTERNAL_SASL_ENABLED_MECHANISMS: PLAIN
         KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG: |
                                                               \
@@ -90,17 +92,17 @@
                                                               user_admin="admin-secret" \
                                                               user_mds="mds-secret";
 
-        KAFKA_LISTENER_NAME_SASL_SSL_SASL_ENABLED_MECHANISMS: OAUTHBEARER
-        KAFKA_LISTENER_NAME_SASL_SSL_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: io.confluent.kafka.server.plugins.auth.token.TokenBearerValidatorCallbackHandler
-        KAFKA_LISTENER_NAME_SASL_SSL_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.confluent.kafka.server.plugins.auth.token.TokenBearerServerLoginCallbackHandler
-        KAFKA_LISTENER_NAME_SASL_SSL_OAUTHBEARER_SASL_JAAS_CONFIG: |
-                                                                   \
-                                                                   org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-                                                                   publicKeyPath="/tmp/conf/public.pem";
+        #KAFKA_LISTENER_NAME_SASL_SSL_SASL_ENABLED_MECHANISMS: OAUTHBEARER
+        #KAFKA_LISTENER_NAME_SASL_SSL_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: io.confluent.kafka.server.plugins.auth.token.TokenBearerValidatorCallbackHandler
+        #KAFKA_LISTENER_NAME_SASL_SSL_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.confluent.kafka.server.plugins.auth.token.TokenBearerServerLoginCallbackHandler
+        #KAFKA_LISTENER_NAME_SASL_SSL_OAUTHBEARER_SASL_JAAS_CONFIG: |
+                                                                  # \
+                                                                   #org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+                                                                   #publicKeyPath="/tmp/conf/public.pem";
 
 
         # Configure external listener
-        KAFKA_LISTENER_NAME_OUTSIDE_SASL_ENABLED_MECHANISMS: OAUTHBEARER
+        KAFKA_LISTENER_NAME_OUTSIDE_SASL_ENABLED_MECHANISMS: OAUTHBEARER,PLAIN
         KAFKA_LISTENER_NAME_OUTSIDE_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: io.confluent.kafka.server.plugins.auth.token.TokenBearerValidatorCallbackHandler
         KAFKA_LISTENER_NAME_OUTSIDE_OAUTHBEARER_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.confluent.kafka.server.plugins.auth.token.TokenBearerServerLoginCallbackHandler
         KAFKA_LISTENER_NAME_OUTSIDE_OAUTHBEARER_SASL_JAAS_CONFIG: |
@@ -142,10 +144,10 @@
         KAFKA_SSL_TRUSTSTORE_CREDENTIALS: kafka1_truststore_creds
         # enables 2-way authentication
         #KAFKA_SSL_CLIENT_AUTH: "required"
-        KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "HTTPS"
+        # KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "HTTPS"
         KAFKA_ZOOKEEPER_SET_ACL: "true"
         # Schema Validation
-        KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: https://schemaregistry:8085
+        KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schemaregistry:8085
         KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/secrets/broker_jaas.conf
                     -Djavax.net.ssl.trustStore=/etc/kafka/secrets/kafka.kafka1.truststore.jks
                     -Djavax.net.ssl.trustStorePassword=confluent
@@ -601,11 +603,11 @@
         # SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "kafka1:9091,kafka2:9092"
         SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "kafka1:10091"
         SCHEMA_REGISTRY_HOST_NAME: schemaregistry
-        SCHEMA_REGISTRY_LISTENERS: "https://0.0.0.0:8085"
+        SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8085"
         SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: SASL_PLAINTEXT
         #SCHEMA_REGISTRY_KAFKASTORE_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.plain.PlainLoginModule required \
-        #  username=\"schemaregistry\" \
-        #  password=\"schemaregistry-secret\";"
+         # username=\"schemaregistry\" \
+         # password=\"schemaregistry-secret\";"
 
         SCHEMA_REGISTRY_KAFKASTORE_SASL_JAAS_CONFIG: |
                                                       \
@@ -613,10 +615,10 @@
                                                       username="leela" \
                                                       password="leela" \
                                                       metadataServerUrls="http://kafka1:8090";
-        #SCHEMA_REGISTRY_KAFKASTORE_SASL_MECHANISM: PLAIN
         SCHEMA_REGISTRY_KAFKASTORE_SASL_MECHANISM: OAUTHBEARER
+        #SCHEMA_REGISTRY_KAFKASTORE_SASL_MECHANISM: OAUTHBEARER
         SCHEMA_REGISTRY_KAFKASTORE_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler
-        SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.schemaregistry.truststore.jks
+        #SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.schemaregistry.truststore.jks
         #SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_PASSWORD: confluent
         #SCHEMA_REGISTRY_KAFKASTORE_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.schemaregistry.keystore.jks
         #SCHEMA_REGISTRY_KAFKASTORE_SSL_KEYSTORE_PASSWORD: confluent
@@ -965,3 +967,4 @@
 
   volumes:
       mi3: {}
+

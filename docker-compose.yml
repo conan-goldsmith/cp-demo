@@ -57,7 +57,7 @@
         - "10091:10091"
         - "11091:11091"
       healthcheck:
-        test: nc -z localhost 8090 && nc -z localhost 29091 && /etc/kafka-registered.sh zookeeper:2181
+        test: nc -z localhost 8090 && nc -z localhost 9091 && /etc/kafka-registered.sh zookeeper:2181
         interval: 3s
         retries: 15
         start_period: 30s
@@ -261,7 +261,7 @@
       environment:
         CUB_CLASSPATH: '/etc/confluent/docker/docker-utils.jar:/usr/share/java/confluent-security/connect/*:/usr/share/java/kafka/*'
         # CONNECT_BOOTSTRAP_SERVERS: "kafka1:9091,kafka2:9092"
-        CONNECT_BOOTSTRAP_SERVERS: "kafka1:9091"
+        CONNECT_BOOTSTRAP_SERVERS: "kafka1:10091"
         CONNECT_REST_PORT: 8083
         CONNECT_LISTENERS: "https://0.0.0.0:8083"
         CONNECT_GROUP_ID: "connect"
@@ -481,6 +481,7 @@
         - "9021:9021"
       volumes:
         - ./conf:/tmp/conf
+        - ./scripts/security:/etc/kafka/secrets
       healthcheck:
           test: nc -z localhost 9021
           interval: 3s
@@ -491,7 +492,7 @@
         CUB_CLASSPATH: '/etc/confluent/docker/docker-utils.jar:/usr/share/java/confluent-control-center/*:/usr/share/java/rest-utils/*:/usr/share/java/confluent-common/*'
         # CUB_CLASSPATH: '/etc/confluent/docker/docker-utils.jar:/usr/share/java/confluent-control-center/*'
         # general settings
-        CONTROL_CENTER_BOOTSTRAP_SERVERS: 'kafka1:29091'
+        CONTROL_CENTER_BOOTSTRAP_SERVERS: 'kafka1:10091'
         CONTROL_CENTER_ZOOKEEPER_CONNECT: 'zookeeper:2181'
         CONTROL_CENTER_REPLICATION_FACTOR: 1
         CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
@@ -555,9 +556,10 @@
         CUB_CLASSPATH: '/etc/confluent/docker/docker-utils.jar:/usr/share/java/confluent-security/schema-registry/*:/usr/share/java/schema-registry/*'
         # SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "kafka1:9091,kafka2:9092"
         SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "kafka1:10091"
+        SCHEMA_REGISTRY_KAFKASTORE_URL: "zookeeper:2181"
         SCHEMA_REGISTRY_HOST_NAME: schemaregistry
         SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8085"
-        SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: SASL_PLAINTEXT
+        SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: SASL_SSL
         #SCHEMA_REGISTRY_KAFKASTORE_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.plain.PlainLoginModule required \
          # username=\"schemaregistry\" \
          # password=\"schemaregistry-secret\";"
@@ -571,19 +573,19 @@
         SCHEMA_REGISTRY_KAFKASTORE_SASL_MECHANISM: OAUTHBEARER
         #SCHEMA_REGISTRY_KAFKASTORE_SASL_MECHANISM: OAUTHBEARER
         SCHEMA_REGISTRY_KAFKASTORE_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler
-        #SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.schemaregistry.truststore.jks
-        #SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_PASSWORD: confluent
-        #SCHEMA_REGISTRY_KAFKASTORE_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.schemaregistry.keystore.jks
-        #SCHEMA_REGISTRY_KAFKASTORE_SSL_KEYSTORE_PASSWORD: confluent
-        #SCHEMA_REGISTRY_KAFKASTORE_SSL_KEY_PASSWORD: confluent
-        #SCHEMA_REGISTRY_KAFKASTORE_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "HTTPS"
-        #SCHEMA_REGISTRY_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.schemaregistry.truststore.jks
-        #SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: confluent
-        #SCHEMA_REGISTRY_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.schemaregistry.keystore.jks
-        #SCHEMA_REGISTRY_SSL_KEYSTORE_PASSWORD: confluent
-        #SCHEMA_REGISTRY_SSL_KEY_PASSWORD: confluent
-        #SCHEMA_REGISTRY_SSL_CLIENT_AUTH: "true"
-        #SCHEMA_REGISTRY_SCHEMA_REGISTRY_INTER_INSTANCE_PROTOCOL: "https"
+        SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.schemaregistry.truststore.jks
+        SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_PASSWORD: confluent
+        SCHEMA_REGISTRY_KAFKASTORE_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.schemaregistry.keystore.jks
+        SCHEMA_REGISTRY_KAFKASTORE_SSL_KEYSTORE_PASSWORD: confluent
+        SCHEMA_REGISTRY_KAFKASTORE_SSL_KEY_PASSWORD: confluent
+        # SCHEMA_REGISTRY_KAFKASTORE_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "HTTPS"
+        SCHEMA_REGISTRY_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.schemaregistry.truststore.jks
+        SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: confluent
+        SCHEMA_REGISTRY_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.schemaregistry.keystore.jks
+        SCHEMA_REGISTRY_SSL_KEYSTORE_PASSWORD: confluent
+        SCHEMA_REGISTRY_SSL_KEY_PASSWORD: confluent
+        SCHEMA_REGISTRY_SSL_CLIENT_AUTH: "true"
+        SCHEMA_REGISTRY_SCHEMA_REGISTRY_INTER_INSTANCE_PROTOCOL: "http"
         SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: DEBUG
         SCHEMA_REGISTRY_KAFKASTORE_TOPIC: _schemas
         SCHEMA_REGISTRY_DEBUG: 'true'
@@ -667,7 +669,10 @@
         - ./conf:/tmp/conf
         - ./scripts/security:/etc/kafka/secrets
       healthcheck:
-        disable: true
+        test: nc -z localhost 8088
+        interval: 3s
+        retries: 15
+        start_period: 30s
       environment:
         CUB_CLASSPATH: '/usr/share/java/ksql-server/*:/usr/share/java/cp-base-new/*'
         KSQL_LOG4J_ROOT_LOGLEVEL: TRACE        
@@ -773,10 +778,8 @@
         - ./conf:/tmp/conf
       environment:
         KAFKA_REST_HOST_NAME: restproxy
-        # KAFKA_REST_BOOTSTRAP_SERVERS: "SASL_SSL://kafka1:9091,SASL_SSL://kafka2:9092"
-        # KAFKA_REST_BOOTSTRAP_SERVERS: "SASL_SSL://kafka1:29091"
-# Changed from SASL to just SSL, this worked.  
-        KAFKA_REST_BOOTSTRAP_SERVERS: "SASL_SSL://kafka1:29091"
+        ### When changed from SASL to just SSL, this component works  
+        KAFKA_REST_BOOTSTRAP_SERVERS: "SASL_SSL://kafka1:10091"
         #
         KAFKA_REST_LISTENERS: "https://0.0.0.0:8086"
         KAFKA_REST_SCHEMA_REGISTRY_URL: "https://schemaregistry:8085"
@@ -806,8 +809,8 @@
         CUB_CLASSPATH: '/etc/confluent/docker/docker-utils.jar:/usr/share/java/confluent-security/kafka-rest/*:/usr/share/java/kafka-rest/*'
         
 #Commented out below to verify that SSL worked
-        #KAFKA_REST_CLIENT_SECURITY_PROTOCOL: SASL_SSL
-        #KAFKA_REST_CLIENT_SASL_MECHANISM: OAUTHBEARER
+        KAFKA_REST_CLIENT_SECURITY_PROTOCOL: SASL_SSL
+        KAFKA_REST_CLIENT_SASL_MECHANISM: OAUTHBEARER
         KAFKA_REST_CLIENT_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler
         KAFKA_REST_CLIENT_SASL_JAAS_CONFIG: |
                                             \
